@@ -182,19 +182,48 @@ if (process.env.CLAWDBOT_DEV_MODE === 'true') {
     config.gateway.controlUi.allowInsecureAuth = true;
 }
 
+// Remove any invalid config keys that might have been persisted from previous versions
+if (config.gateway?.controlUi?.dangerouslyDisableDeviceAuth !== undefined) {
+    delete config.gateway.controlUi.dangerouslyDisableDeviceAuth;
+}
+
 // Telegram configuration
+// Note: Telegram's "pairing" flow via CLI doesn't work (see: github.com/openclaw/openclaw/issues/3793)
+// Use "allowlist" with TELEGRAM_DM_ALLOW_FROM instead, or "open" to allow all users
 if (process.env.TELEGRAM_BOT_TOKEN) {
     config.channels.telegram = config.channels.telegram || {};
     config.channels.telegram.botToken = process.env.TELEGRAM_BOT_TOKEN;
     config.channels.telegram.enabled = true;
-    const telegramDmPolicy = process.env.TELEGRAM_DM_POLICY || 'pairing';
-    config.channels.telegram.dmPolicy = telegramDmPolicy;
+
+    // Determine DM policy: if allowlist is provided, use allowlist mode
+    // Otherwise use the explicit policy or default to pairing
+    let telegramDmPolicy = process.env.TELEGRAM_DM_POLICY || 'pairing';
+
     if (process.env.TELEGRAM_DM_ALLOW_FROM) {
-        // Explicit allowlist: "123,456,789" → ['123', '456', '789']
-        config.channels.telegram.allowFrom = process.env.TELEGRAM_DM_ALLOW_FROM.split(',');
+        // Explicit allowlist: "123,456,789" → [123, 456, 789] (numbers) or ["@username"] (strings)
+        // When allowlist is set, force allowlist policy for reliability
+        telegramDmPolicy = process.env.TELEGRAM_DM_POLICY || 'allowlist';
+        config.channels.telegram.allowFrom = process.env.TELEGRAM_DM_ALLOW_FROM.split(',').map(id => {
+            const trimmed = id.trim();
+            // Keep usernames as strings, convert numeric IDs to numbers
+            return trimmed.startsWith('@') ? trimmed : parseInt(trimmed, 10);
+        });
     } else if (telegramDmPolicy === 'open') {
         // "open" policy requires allowFrom: ["*"]
         config.channels.telegram.allowFrom = ['*'];
+    }
+
+    config.channels.telegram.dmPolicy = telegramDmPolicy;
+
+    // Use polling mode by default (more reliable than webhooks)
+    // Only set webhookUrl if explicitly requested via TELEGRAM_WEBHOOK_MODE=true
+    if (process.env.TELEGRAM_WEBHOOK_MODE === 'true' && process.env.WORKER_URL) {
+        config.channels.telegram.webhookUrl = process.env.WORKER_URL + '/telegram/webhook';
+        console.log('Telegram: Using webhook mode with URL:', config.channels.telegram.webhookUrl);
+    } else {
+        // Clear any existing webhookUrl from restored config to force polling mode
+        delete config.channels.telegram.webhookUrl;
+        console.log('Telegram: Using polling mode (default)');
     }
 }
 
