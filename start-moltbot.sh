@@ -315,6 +315,37 @@ console.log('Config:', JSON.stringify(config, null, 2));
 EOFNODE
 
 # ============================================================
+# CONFIGURE MCPORTER (MCP SERVERS)
+# ============================================================
+MCPORTER_DIR="/root/.mcporter"
+MCPORTER_CONFIG="$MCPORTER_DIR/mcporter.json"
+
+echo "Configuring mcporter..."
+
+# Create mcporter config with Cirra AI server
+cat > "$MCPORTER_CONFIG" << 'EOFMCPORTER'
+{
+  "servers": {
+    "cirra": {
+      "url": "https://mcp.cirra.ai/mcp",
+      "transport": "http"
+    }
+  }
+}
+EOFMCPORTER
+
+echo "Created mcporter config at $MCPORTER_CONFIG"
+
+# Restore OAuth tokens from environment if provided
+if [ -n "$CIRRA_OAUTH_CACHE" ]; then
+    echo "Restoring Cirra AI OAuth tokens..."
+    echo "$CIRRA_OAUTH_CACHE" > "$MCPORTER_DIR/oauth-cache.json"
+    echo "OAuth tokens restored"
+else
+    echo "No CIRRA_OAUTH_CACHE provided - OAuth authentication will be required"
+fi
+
+# ============================================================
 # START GATEWAY
 # ============================================================
 # Note: R2 backup sync is handled by the Worker's cron trigger

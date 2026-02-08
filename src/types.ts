@@ -41,6 +41,8 @@ export interface MoltbotEnv {
   BROWSER?: Fetcher;
   CDP_SECRET?: string; // Shared secret for CDP endpoint authentication
   WORKER_URL?: string; // Public URL of the worker (for CDP endpoint)
+  // MCP server configuration
+  CIRRA_OAUTH_CACHE?: string; // JSON containing OAuth tokens for Cirra AI MCP server
 }
 
 /**

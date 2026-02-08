@@ -17,8 +17,8 @@ RUN ARCH="$(dpkg --print-architecture)" \
     && node --version \
     && npm --version
 
-# Install pnpm globally
-RUN npm install -g pnpm
+# Install pnpm and mcporter globally
+RUN npm install -g pnpm mcporter
 
 # Install moltbot (CLI is still named clawdbot until upstream renames)
 # Pin to specific version for reproducible builds
@@ -30,10 +30,11 @@ RUN npm install -g clawdbot@2026.1.24-3 \
 RUN mkdir -p /root/.clawdbot \
     && mkdir -p /root/.clawdbot-templates \
     && mkdir -p /root/clawd \
-    && mkdir -p /root/clawd/skills
+    && mkdir -p /root/clawd/skills \
+    && mkdir -p /root/.mcporter
 
 # Copy startup script
-# Build cache bust: 2026-02-04-v1-telegram-fix
+# Build cache bust: 2026-02-04-v2-mcporter
 COPY start-moltbot.sh /usr/local/bin/start-moltbot.sh
 RUN chmod +x /usr/local/bin/start-moltbot.sh
 

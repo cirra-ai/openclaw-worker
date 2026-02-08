@@ -381,6 +381,61 @@ The `AI_GATEWAY_*` variables take precedence over `ANTHROPIC_*` if both are set.
 | `SLACK_APP_TOKEN` | No | Slack app token |
 | `CDP_SECRET` | No | Shared secret for CDP endpoint authentication (see [Browser Automation](#optional-browser-automation-cdp)) |
 | `WORKER_URL` | No | Public URL of the worker (required for CDP) |
+| `CIRRA_OAUTH_CACHE` | No | OAuth tokens for Cirra AI MCP server (see [MCP Servers](#optional-mcp-servers-cirra-ai)) |
+
+## Optional: MCP Servers (Cirra AI)
+
+The bot can connect to remote MCP (Model Context Protocol) servers. Cirra AI is pre-configured at `https://mcp.cirra.ai/mcp`.
+
+### OAuth Authentication
+
+Since the bot runs in a headless container, you must authenticate locally first and transfer the tokens.
+
+#### Step 1: Authenticate Locally
+
+On your local machine (with a browser), run the OAuth flow script:
+
+```bash
+# From the moltworker directory
+node skills/cirra-mcp/scripts/oauth-flow.js
+```
+
+This will open your browser for OAuth consent and print the token JSON.
+
+#### Step 2: Set Tokens as Secret
+
+Copy the JSON output and set it as a Cloudflare Worker secret:
+
+```bash
+npx wrangler secret put CIRRA_OAUTH_CACHE
+# Paste the JSON when prompted
+```
+
+#### Step 3: Redeploy
+
+```bash
+npm run deploy
+```
+
+### Using Cirra AI Tools
+
+Once authenticated, the bot can use Cirra AI tools via the `cirra-mcp` skill:
+
+```bash
+# List available tools
+node /root/clawd/skills/cirra-mcp/scripts/call-tool.js --list
+
+# Call a tool
+node /root/clawd/skills/cirra-mcp/scripts/call-tool.js <tool_name> --arg "value"
+```
+
+### Token Refresh
+
+OAuth tokens expire periodically. When they expire:
+
+1. Re-run `node skills/cirra-mcp/scripts/oauth-flow.js` locally
+2. Update the secret: `npx wrangler secret put CIRRA_OAUTH_CACHE`
+3. Restart the gateway via the admin UI at `/_admin/`
 
 ## Security Considerations
 
